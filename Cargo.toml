@@ -1,5 +1,5 @@
 [workspace]
 
 members = [
-    "./triton-rs", "./triton-sys", "example-backend",
+    "./triton-rs", "./triton-sys", "bls-backend", "example-backend",
 ]

@@ -1,5 +1,5 @@
 use crate::{check_err, Error};
-use libc::c_char;
+use libc::{c_char, size_t};
 use std::ffi::CStr;
 use std::fs::File;
 use std::io::prelude::*;
@@ -57,5 +57,36 @@ impl Model {
         f.read_to_end(&mut buffer)?;
 
         Ok(buffer)
+    }
+
+    pub fn model_config(&self) -> Result<String, Error> {
+        // first step: call TRITONBACKEND_ModelConfig c func
+        let config_version = 1;
+        let mut msg : *mut triton_sys::TRITONSERVER_Message = ptr::null_mut();
+        check_err(unsafe {
+            triton_sys::TRITONBACKEND_ModelConfig(self.ptr, config_version, &mut msg)
+        })?;
+    
+        if msg.is_null() {
+            return Err("Failed to get the message pointer".into());
+        }
+    
+        // second step: call TRITONSERVER_MessageSerializeToJson c func, get json string from base and byte_size
+        let mut base: *const libc::c_char = std::ptr::null();
+        let mut byte_size: size_t = 0;
+        check_err(unsafe {
+            triton_sys::TRITONSERVER_MessageSerializeToJson(msg, &mut base, &mut byte_size)
+        })?;
+    
+        if base.is_null() || byte_size == 0 {
+            return Err("Failed to serialize the message to JSON".into());
+        }
+    
+        // Convert C char array to Rust String
+        let json_str = unsafe {
+            std::ffi::CStr::from_ptr(base).to_string_lossy().into_owned()
+        };
+    
+        Ok(json_str)
     }
 }

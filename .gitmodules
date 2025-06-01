@@ -1,3 +1,4 @@
 [submodule "triton-sys/deps/core"]
 	path = triton-sys/deps/core
 	url = https://github.com/triton-inference-server/core.git
+	branch = r22.12

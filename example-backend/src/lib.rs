@@ -30,6 +30,8 @@ impl Backend for ExampleBackend {
     ) -> Result<(), triton_rs::Error> {
         println!("[EXAMPLE] model_instance_execute");
 
+        println!("[EXAMPLE] model config: {:?}", model.model_config()?);
+
         println!(
             "[EXAMPLE] request for model {} {} {}",
             model.name()?,

@@ -44,6 +44,14 @@ pub trait Backend {
         Ok(())
     }
 
+    fn model_initialize() -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn model_finalize() -> Result<(), Error> {
+        Ok(())
+    }
+
     /// Execute a batch of one or more requests on a model instance. This
     /// function is required. Triton will not perform multiple
     /// simultaneous calls to this function for a given model 'instance';
@@ -90,6 +98,20 @@ macro_rules! declare_backend {
             backend: *const triton_rs::sys::TRITONBACKEND_Backend,
         ) -> *const triton_rs::sys::TRITONSERVER_Error {
             triton_rs::call_checked!($class::finalize())
+        }
+
+        #[no_mangle]
+        extern "C" fn TRITONBACKEND_ModelInitialize(
+            model: *mut triton_rs::sys::TRITONBACKEND_Model,
+        ) -> *const triton_rs::sys::TRITONSERVER_Error {
+            triton_rs::call_checked!($class::model_initialize())
+        }
+
+        #[no_mangle]
+        extern "C" fn TRITONBACKEND_ModelFinalize(
+            model: *const triton_rs::sys::TRITONBACKEND_Model,
+        ) -> *const triton_rs::sys::TRITONSERVER_Error {
+            triton_rs::call_checked!($class::model_finalize())
         }
 
         #[no_mangle]
