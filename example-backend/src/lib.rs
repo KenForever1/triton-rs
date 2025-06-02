@@ -1,5 +1,6 @@
 //! https://github.com/triton-inference-server/backend/blob/main/README.md#triton-backend-api
 
+use futures::executor::block_on;
 use libc::c_void;
 use std::ffi::CString;
 use std::ptr;
@@ -40,13 +41,68 @@ impl Backend for ExampleBackend {
         );
 
         for request in requests {
+            let prompt = request.get_input("prompt")?.as_string()?;
+            println!("[EXAMPLE] prompt: {prompt}");
+            
+            // model_excutor
+            let request_id = request.get_request_id()?;
+            println!("[EXAMPLE] request_id: {}", request_id);
+            let correlation_id = request.get_correlation_id()?;
+            println!("[EXAMPLE] correlation_id: {}", correlation_id);
+            let model_name = "test";
+            let model_version = 1;
+            let input1_name = "prompt";
+            let output1_name = "output";
+
+            let server = model.get_server()?;
+            let executor = triton_rs::TritonModelExecuter::new(server)?;
+
+            let inference_request =
+                triton_rs::InferenceRequest::new(server, model_name, model_version)?;
+
+            inference_request.set_request_id(request_id.as_str())?;
+            inference_request.set_correlation_id(correlation_id)?;
+            inference_request.set_release_callback()?;
+
+            println!("[EXAMPLE] set request id and correlation id finish");
+
+            inference_request.add_input(
+                input1_name,
+                triton_sys::TRITONSERVER_datatype_enum_TRITONSERVER_TYPE_BYTES,
+                &[1],
+            )?;
+            println!("add input finish");
+
+            let input1_data = vec![b"test_bls_infer_req".as_ptr() as u8; 18];
+            inference_request.set_input_data(input1_name, &input1_data)?;
+
+            inference_request.add_output(output1_name)?;
+
+            println!("set input data finish");
+
+            let response_tmp = block_on(executor.execute(&inference_request))?;
+
+            // executor.execute(&inference_request).await.map_err(|e| {
+            //     // 自定义错误处理逻辑
+            //     triton_rs::ModelExecuterError::ExecutionError(e)
+            // })?;
+            let infer_response = triton_rs::InferenceResponse::from_ptr(response_tmp);
+
+            println!(
+                "[EXAMPLE] inference_response output : {:?}",
+                infer_response.get_output_count()
+            );
+
+            for out_idx in 0..infer_response.get_output_count().unwrap() {
+                let output = infer_response.get_output_data(out_idx).unwrap();
+                println!("[EXAMPLE] output: {:?}", out_idx);
+                output.print_info();
+            }
+
             let mut response: *mut triton_sys::TRITONBACKEND_Response = ptr::null_mut();
             check_err(unsafe {
                 triton_sys::TRITONBACKEND_ResponseNew(&mut response, request.as_ptr())
             })?;
-
-            let prompt = request.get_input("prompt")?.as_string()?;
-            println!("[EXAMPLE] prompt: {prompt}");
 
             let out = format!("you said: {prompt}");
             let encoded = triton_rs::encode_string(&out);

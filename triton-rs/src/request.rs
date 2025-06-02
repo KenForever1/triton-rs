@@ -2,6 +2,7 @@ use crate::{check_err, decode_string, Error};
 use libc::c_void;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
 
@@ -27,6 +28,27 @@ impl Request {
         })?;
 
         Ok(Input::from_ptr(input))
+    }
+
+    pub fn get_request_id(&self
+    ) -> Result<String, Error> {
+        let mut id_ptr: *const c_char = std::ptr::null();
+
+        check_err(unsafe {
+            triton_sys::TRITONBACKEND_RequestId(self.ptr, &mut id_ptr)
+        })?;
+
+        unsafe {
+            Ok(CStr::from_ptr(id_ptr).to_string_lossy().into_owned()) 
+        }
+    }
+    
+    pub fn get_correlation_id(&self) -> Result<u64, Error> {
+        let mut id: u64 = 0;
+        check_err(unsafe {
+            triton_sys::TRITONBACKEND_RequestCorrelationId(self.ptr, &mut id)
+        })?;
+        Ok(id)
     }
 }
 
@@ -54,6 +76,9 @@ impl Input {
                 &mut memory_type_id,
             )
         })?;
+
+        println!("buffer: {:?}, byte_size: {:?}", buffer, buffer_byte_size);
+        println!("memory_type: {:?}, memory_type_id: {:?}", memory_type, memory_type_id);
 
         let mem: &[u8] =
             unsafe { slice::from_raw_parts(buffer as *mut u8, buffer_byte_size as usize) };

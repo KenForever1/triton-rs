@@ -10,3 +10,6 @@ repository = "https://github.com/xtuc/triton-rs"
 [dependencies]
 libc = "0.2.148"
 triton-sys = { version = "0.1.0", path = "../triton-sys" }
+async-trait = "0.1"
+thiserror = "1.0"
+tokio = { version = "1.0", features = ["full", "rt-multi-thread"] }

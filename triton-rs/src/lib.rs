@@ -1,16 +1,33 @@
 mod backend;
 mod model;
 mod request;
+mod model_executor;
+mod error;
+mod inference_request;
+mod inference_response;
 
 pub use backend::Backend;
 pub use model::Model;
 pub use request::Request;
 pub use triton_sys as sys;
+pub use model_executor::TritonModelExecuter;
+pub use inference_request::InferenceRequest;
+pub use inference_response::InferenceResponse;
+pub use error::ModelExecuterError;
 
 pub type Error = Box<dyn std::error::Error>;
 
 pub(crate) fn check_err(err: *mut triton_sys::TRITONSERVER_Error) -> Result<(), Error> {
     if !err.is_null() {
+        unsafe{
+            let err_msg = triton_sys::TRITONSERVER_ErrorCodeString(err);
+            eprintln!(
+                "check err : {:?}",
+                std::ffi::CStr::from_ptr(err_msg)
+            );
+            triton_sys::TRITONSERVER_ErrorDelete(err);
+        }
+
         let code = unsafe { triton_sys::TRITONSERVER_ErrorCode(err) };
         Err(format!(
             "TRITONBACKEND_ModelInstanceModel returned error code {}",
@@ -19,6 +36,19 @@ pub(crate) fn check_err(err: *mut triton_sys::TRITONSERVER_Error) -> Result<(), 
         .into())
     } else {
         Ok(())
+    }
+}
+
+pub(crate) fn dump_err(err: *mut triton_sys::TRITONSERVER_Error) {
+    if !err.is_null() {
+        unsafe{
+            let err_msg = triton_sys::TRITONSERVER_ErrorCodeString(err);
+            eprintln!(
+                "check err : {:?}",
+                std::ffi::CStr::from_ptr(err_msg)
+            );
+            triton_sys::TRITONSERVER_ErrorDelete(err);
+        }
     }
 }
 

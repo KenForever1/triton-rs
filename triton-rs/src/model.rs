@@ -11,6 +11,13 @@ pub struct Model {
 }
 
 impl Model {
+    
+    pub fn get_server(&self) -> Result<*mut triton_sys::TRITONSERVER_Server, Error> {
+        let mut server: *mut triton_sys::TRITONSERVER_Server = ptr::null_mut();
+        check_err(unsafe { triton_sys::TRITONBACKEND_ModelServer(self.ptr, &mut server) })?;
+        Ok(server)
+    }
+
     pub fn from_ptr(ptr: *mut triton_sys::TRITONBACKEND_Model) -> Self {
         Self { ptr }
     }

@@ -8,6 +8,7 @@ publish = false
 triton-rs = { path = "../triton-rs" }
 triton-sys = { path = "../triton-sys" }
 libc = "0.2.148"
+futures = "0.3.31"
 
 [lib]
 name = "triton_example"
